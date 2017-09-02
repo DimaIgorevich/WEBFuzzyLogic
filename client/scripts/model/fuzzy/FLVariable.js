@@ -19,22 +19,6 @@ var Variable = function (title, type, countTerm, listTerm, signalValue, links) {
     this.links = links;
 };
 
-Variable.prototype.setGlobalID = function (id) {
-    this.globalID = id;
-}
-
-Variable.prototype.setID = function (id) {
-    this.id = id;
-}
-
-Variable.prototype.getGlobalID = function () {
-    return this.globalID;
-}
-
-Variable.prototype.getID = function () {
-    return this.id;
-}
-
 Variable.prototype.getType = function () {
     return this.type;
 };
@@ -46,6 +30,10 @@ Variable.prototype.getTitle = function () {
 Variable.prototype.getCountTerm = function () {
     return this.count;
 };
+
+Variable.prototype.setSignalValue = function (value) {
+    this.signalValue = value;
+}
 
 Variable.prototype.getSignalValue = function () {
     return this.signalValue;
@@ -75,25 +63,3 @@ Variable.prototype.sortListTermContent = function () {
         return 0;
     });
 };
-
-function getVariableByData(data) {
-    if (VariableType.OUTPUT == data.type) {
-        return getOutputVariableByIndex(data.index);
-    } else if (VariableType.INPUT == data.type) {
-        return getInputVariableByIndex(data.index);
-    } else if (VariableType.INTERMEDIATE == data.type) {
-        return getIntermediateVariableByIndex(data.index);
-    }
-}
-
-function getIntermediateVariableByIndex(index) {
-    return variables.intermediateVariables[index];
-}
-
-function getInputVariableByIndex(index) {
-    return variables.inputVariables[index];
-}
-
-function getOutputVariableByIndex(index) {
-    return variables.outputVariables[index];
-}

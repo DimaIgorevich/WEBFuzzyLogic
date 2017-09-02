@@ -1,7 +1,7 @@
 //Class Rule Base Prototype
 var RuleBase = function (variables) {
-    let countVariability = getCountVariability();
 
+    let countVariability = getCountVariabilityByVariables(variables);
     this.listCharacteristicModel = new Array(countVariability);
 
     for (var i = 0; i < countVariability; i++) {
@@ -41,7 +41,7 @@ RuleBase.prototype.getListRule = function () {
     return this.baseOfRules;
 };
 
-function getCountVariability() {
+function getCountVariabilityByVariables(variables) {
     let countVariability = 1;
     for (var indexVar = 0; indexVar < variables.length; indexVar++) {
         countVariability *= variables[indexVar].getListTerm().length;

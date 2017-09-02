@@ -2,69 +2,11 @@
 $(document).ready(function() {
     $(".popup_bg").click(function(){
         hidePopup();
+        selectedNode = null;
     });
 });
 
-function createOutputVariableUIElement() {
-    let title = outputVar.getTitle();
-    let workspace = document.getElementById('workspace');
-    let divElem = document.createElement('div');
-
-    divElem.id = "workspace-var-" + "R";
-    divElem.className = 'div-variable';
-    divElem.innerHTML = title;
-    divElem.onclick = function () {
-        loadDataVariableByIndex(divElem.id);
-    };
-
-    let rectWorkspace = workspace.getBoundingClientRect();
-    let width = rectWorkspace.right - rectWorkspace.left;
-    divElem.style.left = width / 2 + "px";
-    workspace.appendChild(divElem);
-}
-
-function createVariableUIElementWithIndex(index) {
-    let title = variables[index].getTitle();
-    let workspace = document.getElementById('workspace');
-    let divElem = document.createElement('div');
-
-    divElem.id = "workspace-var-" + index.toString();
-    divElem.className = 'div-variable';
-    divElem.innerHTML = title;
-    divElem.onclick = function () {
-        loadDataVariableByIndex(divElem.id);
-    };
-    if (index > 0) {
-        let lastVariableElement = workspace.lastChild;
-        let rect = lastVariableElement.getBoundingClientRect();
-        let resultTop = 15 + rect.bottom;
-        divElem.style.top = resultTop.toString() + "px";
-    }
-
-    workspace.appendChild(divElem);
-}
-
-function createFuzzyDSSUIElement() {
-    let title = "Fuzzy DSS";
-    let workspace = document.getElementById('workspace');
-    let divElem = document.createElement('div');
-    divElem.className = 'div-variable';
-    divElem.innerHTML = title;
-
-    let rectWorkspace = workspace.getBoundingClientRect();
-    let width = rectWorkspace.right - rectWorkspace.left;
-    divElem.style.top = "40px";
-    divElem.style.left = width / 4 + "px";
-
-    divElem.onclick = function () {
-        createPopup();
-        showPopupDss();
-    };
-
-    workspace.appendChild(divElem);
-}
-
-function createPopup() {
+function popupRulesWithNodeData(data) {
     let popup = document.createElement('div');
     popup.className = 'popup_dss';
 
@@ -79,57 +21,63 @@ function createPopup() {
     form.className = 'form';
     form.id = 'rule-form';
 
-    tableWithRulesToParent(form);
-    addAcceptButtonWithParent(form);
+    addTableRulesToFormWithNodeData(form, data);
+    addAcceptButtonToParentWithNodeData(form, data);
 
     popup.appendChild(popup_bg);
     popup.appendChild(form);
 
-    let workspace = document.getElementById('workspace');
-    workspace.appendChild(popup);
+    let body = document.body;
+    body.appendChild(popup);
 }
 
 function buildRules() {
-    if (variables.length == 0 || !outputVar) {
-        alert("You need create input and output variable");
-    } else {
-        baseOfRules = new RuleBase(variables);
-        createFuzzyDSSUIElement();
+    for (var i = 0; i < dataWorkspaceNodes.length; i++) {
+        var node = dataWorkspaceNodes[i];
+        if (hasNodeInputs(node)) {
+            var ruleDB = new RuleBase(getChildVariables(node));
+            rules.put(node.key, ruleDB);
+        }
     }
 }
 
-function addAcceptButtonWithParent(parent) {
+function addAcceptButtonToParentWithNodeData(parent, data) {
     var inputTag = document.createElement('div');
-    inputTag.innerHTML = "<input type = 'button' value = 'Accept' onclick = 'btnAcceptRules();'>";
+    inputTag.innerHTML = "<input type = 'button' value = 'Accept' onclick = 'btnAcceptRulesWithNodeData(selectedNode);'>";
     parent.appendChild(inputTag);
 }
 
-function tableWithRulesToParent(parent) {
+function addTableRulesToFormWithNodeData(form, data) {
     var table = document.createElement('table');
     var tableBody = document.createElement('tbody');
     var titleRow = document.createElement('tr');
 
-    for (var i = 0; i < variables.length; i++) {
+    var childVariables = getChildVariables(data);
+
+    for (var i = 0; i < childVariables.length; i++) {
         var cell = document.createElement('th');
-        var cellText = document.createTextNode(variables[i].getTitle());
+        var cellText = document.createTextNode(childVariables[i].getTitle());
         cell.appendChild(cellText);
         titleRow.appendChild(cell);
     }
+
     var cell = document.createElement('th');
-    var cellText = document.createTextNode(outputVar.getTitle());
+    var cellText = document.createTextNode(data.variable.getTitle());
     cell.appendChild(cellText);
     titleRow.appendChild(cell);
     tableBody.appendChild(titleRow);
 
-    for (var j = 0; j < baseOfRules.getListRule().length; j++) {
+    var ruleDB = rules.get(data.key);
+
+    for (var j = 0; j < ruleDB.getListRule().length; j++) {
         var row = document.createElement('tr');
-        for (var i = 0; i <= baseOfRules.getListRule()[j].length; i++) {
+        for (var i = 0; i <= ruleDB.getListRule()[j].length; i++) {
             var cell = document.createElement('td');
-            if (i == baseOfRules.getListRule()[j].length) {
+            if (i == ruleDB.getListRule()[j].length) {
                 var select = document.createElement('select');
                 var array = new Array(0);
-                for (var index = 0; index < outputVar.getListTerm().length; index++) {
-                    array.push(outputVar.getListTerm()[index].getShortName());
+                for (var index = 0; index < data.variable.getListTerm().length; index++) {
+                    array.push(data.variable.getListTerm()[index].getShortName());
                 }
                 for (var i = 0; i < array.length; i++) {
                     var option = document.createElement("option");
@@ -139,24 +87,25 @@ function tableWithRulesToParent(parent) {
 
                     select.appendChild(option);
                 }
-                if (baseOfRules.getListCharacteristicModel()[j] == -1) {
+                if (ruleDB.getListCharacteristicModel()[j] == -1) {
                     select.selectedIndex = -1;
                 } else {
-                    select.selectedIndex = baseOfRules.getListCharacteristicModel()[j];
+                    select.selectedIndex = ruleDB.getListCharacteristicModel()[j];
                 }
 
                 cell.appendChild(select);
             } else {
-                var cellText = document.createTextNode(baseOfRules.getListRule()[j][i].getShortName());
+                var cellText = document.createTextNode(ruleDB.getListRule()[j][i].getShortName());
                 cell.appendChild(cellText);
             }
             row.appendChild(cell);
         }
         tableBody.appendChild(row);
     }
+    
     table.appendChild(tableBody);
     table.setAttribute("border", "1");
-    parent.appendChild(table);
+    form.appendChild(table);
 }
 
 function showRules() {
@@ -185,18 +134,29 @@ function indexAtMaximalElementInArray(array) {
     return indexMax;
 }
 
-function getResultGroup(vectorFuziification) {
-    let group = outputVar.getListTerm()[indexAtMaximalElementInArray(vectorFuziification)];
+function getResultGroup(vectorFuziification, outputVariable) {
+    let group = outputVariable.getListTerm()[indexAtMaximalElementInArray(vectorFuziification)];
     return group;
 }
 
 function run() {
-    let vector = fuzzificationVector();
+    var outputNode = getOutputNode();
+    let outputVector = fuzzificationVectorByNode(outputNode);
 
-    alert("vector: " + vector.join());
+    alert("vector: " + outputVector.join());
 
-    let resultGroup = getResultGroup(vector);
-    alert("result Group: " + resultGroup.getName());
+
+    // let vector;
+    // for (var i = 0; i < knowledges.getKeys().length; i++) {
+    //     vector = fuzzificationVectorByKnowledge(knowledges.getKeys()[i]);
+    // }
+
+    // let resultGroup;
+    // for (var i = 0; i < knowledges.getKeys().length; i++) {
+    //     var node = workspaceDiagram.findNodeForKey(knowledges.getKeys()[i]);
+    //     resultGroup = getResultGroup(vector, node.data.variable);
+    // }
+    // alert("result Group: " + resultGroup.getName());
 }
 
 function hidePopup() {
@@ -249,6 +209,7 @@ function hideSignalTable() {
 function hidePopupDss() {
     $(".popup_bg_dss").remove();
     $(".popup_dss").remove();
+    selectedNode = null;
 }
 
 function showPopupDss() {
@@ -289,7 +250,7 @@ function btnNext() {
         if (currentTerm < terms.length){
             loadDataTermByIndex(currentTerm);
         } else {
-            resetTriangleDataForm();
+            FormDataHelper.resetTermData();
         }
         document.getElementById("termPages").innerHTML = (currentTerm+1) + " of " + document.getElementById("countTerm").valueOf().value;
     } else {
@@ -311,29 +272,28 @@ function btnPreview() {
 
 function btnAccept() {
     if (currentTerm >= terms.length) {
-        addTerm(fetchTriangleDataForm());
+        addTerm(createTerm());
     } else {
         editTermByID(currentTerm);
     }
 }
 
 function btnDone() {
-    if (!isEmptyFields()){
-
-        if (currentVariable == -1) {
-            addVariable(fetchVariableDataForm());
-        } else {
-            //editVariableWithID(currentVariable);
+    if (!FormDataHelper.isEmptyFormMainFields() && FormDataHelper.isReadyAllTerms(terms)){
+        
+        if (currentVariable) {
             editVariable(currentVariable);
             hidePopup();
+        } else {
+            addVariable(createVariable());
         }
     } else {
         alert("Please, input data for variable");
     }
 }
 
-function btnAcceptRules() {
-    fetchRulesDataForm();
-    knowledgeMatrix = new KnowledgeMatrix(outputVar, baseOfRules);
+function btnAcceptRulesWithNodeData(data) {
+    fetchRulesDataFormToRuleDataBase(rules.get(data.key));
+    knowledges.put(data.key, new KnowledgeMatrix(data.variable, rules.get(data.key)));
     hidePopupDss();
 }

@@ -3,27 +3,48 @@
 <head>
     <title>TriangleNumbers</title>
 
+    <script src="client/scripts/model/native/Map.js"></script>
+
+    <!--Loader JS-files-->
+    <!-- <script type='text/javascript' src='client/scripts/helpers/LoaderJS/LoaderJS.js'></script> -->
+
+    <!--Libs-->
     <script type='text/javascript' src='client/scripts/jquery.min.js'></script>
     <script src="client/lib/chartist-js-develop/dist/chartist.min.js"></script>
     <script src="client/scripts/jquery-1.9.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/1.7.17/go-debug.js"></script>
 
+    <!--DataContainer-->
+    <script type='text/javascript' src='client/scripts/logic/FLContainer.js'></script>
+
+    <!--Helpers-->
+    <!-- <script type='text/javascript' src='client/scripts/helpers/helpers.js'></script> -->
+
+    <script src="client/scripts/helpers/Form/FormHelperUI.js"></script>
+    <script src="client/scripts/helpers/GoJS/GoJSNodeHelper.js"></script>
+    <script src="client/scripts/helpers/GoJS/GoJSDiagramHelper.js"></script>
+    <script src="client/scripts/helpers/GoJS/GoJSLinkHelper.js"></script>
+    <script src="client/scripts/helpers/Form/FormDataHelper.js"></script>
+    <script src="client/scripts/helpers/ChartistJS/ChartistJSHelper.js"></script>
 
     <!--Model-->
-    <script type='text/javascript' src='client/scripts/model/FLKnowledgeMatrix.js'></script>
-    <script type='text/javascript' src='client/scripts/model/FLRuleBase.js'></script>
-    <script type='text/javascript' src='client/scripts/model/FLTerm.js'></script>
-    <script type='text/javascript' src='client/scripts/model/FLTriangleNumber.js'></script>
-    <script type='text/javascript' src='client/scripts/model/FLVariable.js'></script>
+    <!-- <script type='text/javascript' src='client/scripts/model/model.js'></script> -->
+
+    <script src="client/scripts/model/fuzzy/FLKnowledgeMatrix.js"></script>
+    <script src="client/scripts/model/fuzzy/FLRuleBase.js"></script>
+    <script src="client/scripts/model/fuzzy/FLTerm.js"></script>
+    <script src="client/scripts/model/fuzzy/FLTriangleNumber.js"></script>
+    <script src="client/scripts/model/fuzzy/FLVariable.js"></script>
 
     <!--Logic-->
-    <script type='text/javascript' src='client/scripts/logic/FLContainer.js'></script>
-    <script type='text/javascript' src='client/scripts/logic/FuzzyLogic.js'></script>
+    <!-- <script type='text/javascript' src='client/scripts/logic/logic.js'></script> -->
+
+    <script src="client/scripts/logic/FuzzyLogic.js"></script>
 
     <!--UI-->
-    <script type='text/javascript' src='client/scripts/ui/FLDocumentWindowHelperUI.js'></script>
-    <script type='text/javascript' src='client/scripts/ui/FLChartHelperUI.js'></script>
-    <script type='text/javascript' src='client/scripts/ui/FLFormHelperUI.js'></script>
+    <!-- <script type='text/javascript' src='client/scripts/ui/ui.js'></script> -->
+
+    <script src="client/scripts/ui/FLDocumentWindowHelperUI.js"></script>
 
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -31,6 +52,7 @@
 
     <link rel="stylesheet" href="client/lib/chartist-js-develop/dist/chartist.min.css">
     <link rel="stylesheet" href="client/styles/css-style.css" type="text/css">
+
 </head>
 <body>
 
@@ -184,53 +206,15 @@
 </div>
 
 <script>
-    ////////////////////////////////////////////////////////C H A R T//////////////////////////////////////////////////////////////////////
-
-    var data = {
-        labels: horizontal,
-        series: series
-    };
-
-    let plotOptions = {
-        // Don't draw the line chart points
-        showPoint: false,
-        // Disable line smoothing
-        lineSmooth: false,
-        // X-Axis specific configuration
-        axisX: {
-            // We can disable the grid for this axis
-            showGrid: false,
-            // and also don't show the label
-            showLabel: false
-        },
-        // Y-Axis specific configuration
-        axisY: {
-            // Lets offset the chart a bit from the labels
-            offset: 100,
-            // The label interpolation function enables you to modify the values
-            // used for the labels on each axis. Here we are converting the
-            // values into million pound.
-            labelInterpolationFnc: function (value) {
-                return value;
-            }
-        }
-    };
 
     let chart = new Chartist.Line('.ct-chart', data, plotOptions);
 
-    ////////////////////////////////////////////////////////C H A R T//////////////////////////////////////////////////////////////////////
-
     $(document).ready (function (){
         var $ = go.GraphObject.make;
-        workspaceDiagram =
-            $(go.Diagram, "workspace",
-                {
-                    initialContentAlignment: go.Spot.Center, // center Diagram contents
-                    "undoManager.isEnabled": true // enable Ctrl-Z to undo and Ctrl-Y to redo
-                });
 
-        // the template we defined earlier
-        workspaceDiagram.nodeTemplate =
+        workspaceDiagram = makeDiagramWithElementID("workspace");
+
+        workspaceDiagram.nodeTemplate = 
             $(go.Node, "Horizontal",
                 { background: "#44CCFF" },
                 $(go.TextBlock, "Default Text",
@@ -238,7 +222,8 @@
                     new go.Binding("text", "key")),
                 {
                     click: function (e, obj) {
-                        formWillAppearWithVariableData(obj.part.data);
+                        selectedNode = obj.part.data;
+                        formWillAppearWithNodeData(obj.part.data);
                         showPopup();
                     }
 
@@ -252,7 +237,11 @@
                     $(go.TextBlock, "Show RuleBase"),
                     {
                         click: function (e, obj) {
-                            alert("show popup with rules");
+                            if (rules.isExist(obj.part.data.key)) {
+                                selectedNode = obj.part.data;
+                                popupRulesWithNodeData(obj.part.data);
+                                showPopupDss();
+                            }
                         }
                     }
                 ),
@@ -268,21 +257,12 @@
 
         workspaceDiagram.linkTemplate =
             $(go.Link,
-                { routing: go.Link.AvoidsNodes },  // link route should avoid nodes
+                { routing: go.Link.AvoidsNodes }, 
                 $(go.Shape),
                 $(go.Shape, { toArrow: "Standard" })
             );
 
         workspaceDiagram.model = new go.GraphLinksModel(dataWorkspaceNodes, dataWorkspaceLinks);
-
-
-//        workspaceDiagram.linkTemplate =
-//            $(go.Link,       // the whole link panel
-//                $(go.Shape));
-//
-////        var model = $(go.GraphLinksModel);
-////        model.nodeDataArray = dataWorkspaceNodes;
-//        workspaceDiagram.model = new go.GraphLinksModel(dataWorkspaceNodes, dataWorkspaceLinks);
     });
 
 </script>
