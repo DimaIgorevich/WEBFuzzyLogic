@@ -139,24 +139,24 @@ function getResultGroup(vectorFuziification, outputVariable) {
     return group;
 }
 
-function run() {
+function runFuzzy() {
     var outputNode = getOutputNode();
     let outputVector = fuzzificationVectorByNode(outputNode);
 
     alert("vector: " + outputVector.join());
 
 
-    // let vector;
-    // for (var i = 0; i < knowledges.getKeys().length; i++) {
-    //     vector = fuzzificationVectorByKnowledge(knowledges.getKeys()[i]);
-    // }
+    let vector;
+    for (var i = 0; i < knowledges.getKeys().length; i++) {
+        vector = fuzzificationVectorByKnowledge(knowledges.getKeys()[i]);
+    }
 
-    // let resultGroup;
-    // for (var i = 0; i < knowledges.getKeys().length; i++) {
-    //     var node = workspaceDiagram.findNodeForKey(knowledges.getKeys()[i]);
-    //     resultGroup = getResultGroup(vector, node.data.variable);
-    // }
-    // alert("result Group: " + resultGroup.getName());
+    let resultGroup;
+    for (var i = 0; i < knowledges.getKeys().length; i++) {
+        var node = workspaceDiagram.findNodeForKey(knowledges.getKeys()[i]);
+        resultGroup = getResultGroup(vector, node.data.variable);
+    }
+    alert("result Group: " + resultGroup.getName());
 }
 
 function hidePopup() {
